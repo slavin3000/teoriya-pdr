@@ -1,0 +1,1119 @@
+<title>ПДР-тренажёр</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one centred column (max 760px) — home = modes + stats, quiz = ticket strip + question card. Road-sign blue accent, lane-marking yellow for attention. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #f5f7f9;
+  --line: #d5dce3;
+  --ink: #15202b;
+  --ink-2: #4a5866;
+  --ink-3: #7a8794;
+  --accent: #1c5dab;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2ecf8;
+  --marking: #e8a900;
+  --marking-soft: #fdf3d6;
+  --ok: #1d8049;
+  --ok-soft: #e1f3e8;
+  --bad: #c4302a;
+  --bad-soft: #fbe5e3;
+  --shadow: 0 1px 2px rgba(21, 32, 43, .06), 0 4px 16px rgba(21, 32, 43, .06);
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111519; --surface: #1a2026; --surface-2: #20272e; --line: #2e3842;
+    --ink: #e7ecf0; --ink-2: #aab6c1; --ink-3: #7d8a96;
+    --accent: #5d9be4; --accent-ink: #0c1620; --accent-soft: #1b2c40;
+    --marking: #f2c230; --marking-soft: #3a3016;
+    --ok: #45c07c; --ok-soft: #16301f; --bad: #f0645a; --bad-soft: #3a1c1a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111519; --surface: #1a2026; --surface-2: #20272e; --line: #2e3842;
+  --ink: #e7ecf0; --ink-2: #aab6c1; --ink-3: #7d8a96;
+  --accent: #5d9be4; --accent-ink: #0c1620; --accent-soft: #1b2c40;
+  --marking: #f2c230; --marking-soft: #3a3016;
+  --ok: #45c07c; --ok-soft: #16301f; --bad: #f0645a; --bad-soft: #3a1c1a;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+button { font: inherit; color: inherit; }
+.app { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 20px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-sign { width: 38px; height: 38px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 12px; letter-spacing: 0; flex: none; }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 20px; margin: 0; letter-spacing: -.01em; }
+.brand p { margin: 0; color: var(--ink-3); font-size: 13px; }
+.save-state { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; }
+.save-state i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); display: inline-block; }
+.save-state.on i { background: var(--ok); }
+.save-state.warn i { background: var(--marking); }
+.lane { height: 4px; background: repeating-linear-gradient(90deg, var(--marking) 0 28px, transparent 28px 44px); border-radius: 2px; opacity: .85; }
+
+h2.sec { font-family: var(--f-display); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); margin: 0 0 10px; }
+
+/* modes */
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.mode { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 18px 18px 16px; display: grid; gap: 6px; cursor: pointer; box-shadow: var(--shadow); transition: transform .12s ease, border-color .12s ease; min-width: 0; }
+.mode:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--accent); }
+.mode:disabled { cursor: default; opacity: .75; box-shadow: none; }
+.mode-kicker { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+.mode-fix .mode-kicker { color: var(--bad); }
+.mode-real .mode-kicker { color: var(--ink-2); }
+.mode-real { background: var(--surface-2); }
+.mode-title { font-family: var(--f-display); font-weight: 700; font-size: 18px; line-height: 1.3; text-wrap: balance; }
+.mode-sub { color: var(--ink-2); font-size: 14px; }
+.mode-go { margin-top: 6px; font-weight: 600; font-size: 14px; color: var(--accent); }
+
+/* stats */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 620px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; min-width: 0; }
+.tile b { display: block; font-family: var(--f-display); font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.tile span { font-size: 12.5px; color: var(--ink-3); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+.empty { color: var(--ink-3); font-size: 14px; margin: 0; }
+.weak-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px dashed var(--line); font-size: 14px; }
+.weak-row:first-child { border-top: 0; }
+.weak-row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.weak-row .nm small { color: var(--ink-3); font-family: var(--f-mono); font-size: 12px; margin-right: 6px; }
+.bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--bad); border-radius: 3px; }
+.bar i.mid { background: var(--marking); }
+.bar i.good { background: var(--ok); }
+.pct { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.hist-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line); font-size: 14px; }
+.hist-row:first-child { border-top: 0; }
+.hist-row .when { color: var(--ink-2); min-width: 0; }
+.hist-row .err { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.bad { background: var(--bad-soft); color: var(--bad); }
+.badge.mute { background: var(--surface-2); color: var(--ink-3); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.two > * { min-width: 0; }
+
+/* quiz */
+.qbar { display: flex; align-items: center; gap: 12px; justify-content: space-between; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; }
+.ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 14px; color: var(--ink-2); }
+.ghost:hover { border-color: var(--ink-3); color: var(--ink); }
+.ghost.danger { border-color: var(--bad); color: var(--bad); }
+.qbar-mid { font-weight: 600; font-size: 14px; color: var(--ink-2); text-align: center; flex: 1; min-width: 0; }
+.qbar-mid .errs { color: var(--bad); }
+.timer { font-family: var(--f-mono); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; padding: 4px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); }
+.timer.low { background: var(--marking-soft); border-color: var(--marking); }
+.strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; }
+.strip li { list-style: none; min-width: 0; }
+.cell { display: block; width: 100%; padding: 7px 0; background: none; border: 0; cursor: pointer; }
+.cell::before { content: ""; display: block; height: 8px; border-radius: 2px; background: var(--line); transition: transform .1s ease; }
+.cell.ok::before { background: var(--ok); }
+.cell.bad::before { background: var(--bad); }
+.cell.cur::before { background: var(--accent); }
+.cell.viewing::before { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
+.cell:not(.locked):hover::before { transform: scaleY(1.6); }
+.cell.locked { cursor: default; }
+.cell.open::before { background: var(--line); }
+.cell:focus-visible { outline: none; }
+.cell:focus-visible::before { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--marking); }
+.tip { position: fixed; z-index: 50; max-width: min(340px, calc(100vw - 24px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 8px 11px; font-size: 13px; line-height: 1.4; box-shadow: var(--shadow); pointer-events: none; }
+.tip b { display: block; font-family: var(--f-mono); font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+.tip b span { font-family: var(--f-body); font-weight: 600; margin-left: 6px; }
+.tip .t-ok { color: var(--ok-soft); } .tip .t-bad { color: var(--bad-soft); } .tip .t-cur { color: var(--accent-soft); }
+.tip p { margin: 0; }
+.review-bar { background: var(--accent-soft); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .cell::before { transition: none; } }
+.progress-line { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress-line i { display: block; height: 100%; background: var(--accent); }
+.qcard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; box-shadow: var(--shadow); min-width: 0; }
+.qmeta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); }
+.chip { font-family: var(--f-mono); font-size: 12px; font-weight: 600; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 6px; }
+.qimg { margin: 0; max-width: 100%; border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+.qimg img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.qtext { font-size: 19px; line-height: 1.45; font-weight: 600; margin: 0; text-wrap: pretty; }
+.opts { display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: start; text-align: left; background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 12px; cursor: pointer; font-size: 16px; line-height: 1.45; transition: border-color .1s ease, background .1s ease; }
+.opt:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.opt:disabled { cursor: default; }
+.opt .num { width: 30px; height: 30px; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--f-mono); font-weight: 600; font-size: 14px; }
+.opt .mark { font-size: 13px; font-weight: 600; align-self: center; white-space: nowrap; }
+.opt.right { border-color: var(--ok); background: var(--ok-soft); }
+.opt.right .num { background: var(--ok); color: var(--surface); border-color: var(--ok); }
+.opt.right .mark { color: var(--ok); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.wrong .num { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.opt.wrong .mark { color: var(--bad); }
+.opt.dim { opacity: .55; }
+.feedback { border-radius: 10px; padding: 12px 14px; font-weight: 600; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.feedback.ok { background: var(--ok-soft); color: var(--ok); }
+.feedback.bad { background: var(--bad-soft); color: var(--bad); }
+.feedback span { font-weight: 500; color: var(--ink); }
+.explain { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; padding: 12px 14px; font-size: 15px; white-space: pre-wrap; }
+.explain .note { display: block; margin-top: 8px; font-size: 12.5px; color: var(--ink-3); white-space: normal; }
+.actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; font-size: 15px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.soft { background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+.btn.soft:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .55; cursor: default; }
+.kbd { font-size: 12px; color: var(--ink-3); text-align: right; }
+
+/* result */
+.verdict { border-radius: 14px; padding: 22px 20px; display: grid; gap: 6px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+.verdict .big { font-family: var(--f-display); font-weight: 700; font-size: 30px; line-height: 1.15; }
+.verdict.pass .big { color: var(--ok); }
+.verdict.fail .big { color: var(--bad); }
+.verdict p { margin: 0; color: var(--ink-2); }
+.mist { display: grid; gap: 10px; }
+.mist-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 6px; font-size: 14.5px; min-width: 0; }
+.mist-item .q { font-weight: 600; }
+.mist-item .a-bad { color: var(--bad); }
+.mist-item .a-ok { color: var(--ok); }
+.mist-item img { max-width: min(100%, 360px); border-radius: 6px; display: block; }
+.row-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+:focus-visible { outline: 2.5px solid var(--marking); outline-offset: 2px; }
+.skeleton { background: linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2)); background-size: 200% 100%; animation: sh 1.2s linear infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } .mode { transition: none; } }
+.foot { font-size: 12.5px; color: var(--ink-3); text-align: center; }
+#view { display: grid; gap: 16px; min-width: 0; }
+
+/* ПДР quotes */
+.explain { white-space: normal; display: grid; gap: 12px; }
+.law { display: grid; gap: 10px; }
+.law-src { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); }
+.law-item { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; min-width: 0; }
+.law-item figcaption { font-family: var(--f-mono); font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.law-item blockquote { margin: 0; font-size: 14.5px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.law-item blockquote.clamp { max-height: 9.5em; overflow: hidden; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+.law-more { justify-self: start; background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; font-size: 13.5px; cursor: pointer; }
+.law-none { margin: 0; font-size: 14px; color: var(--ink-2); }
+.why-text { white-space: pre-wrap; font-size: 15px; }
+
+/* always-visible progress */
+.progress { display: grid; gap: 8px; }
+.pg-nums { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; }
+.pg-nums > div { display: flex; align-items: baseline; gap: 6px; }
+.pg-nums b { font-family: var(--f-display); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.pg-nums .pg-main b { font-size: 22px; color: var(--ok); }
+.pg-nums span { font-size: 13px; color: var(--ink-3); }
+.pg-nums .pg-wait b { color: var(--bad); }
+.pg-nums .pg-fc b { color: var(--accent); }
+.pg-nums .pg-fc { cursor: help; }
+.pg-bar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; display: flex; }
+.pg-bar i { display: block; height: 100%; }
+.pg-bar i.ok { background: var(--ok); }
+.pg-bar i.wait { background: var(--bad); }
+.chip.rep { background: var(--bad-soft); color: var(--bad); font-family: var(--f-body); }
+
+/* sign cards */
+.sign-item { margin: 0; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--bad); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; min-width: 0; }
+.sign-item figcaption { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.sign-num { font-family: var(--f-mono); font-size: 13px; font-weight: 600; color: var(--bad); }
+.sign-name { font-weight: 600; font-size: 14.5px; }
+.sign-item blockquote { margin: 0; font-size: 14.5px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.sign-item blockquote.clamp { max-height: 8em; overflow: hidden; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+.sign-notes { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-2); display: grid; gap: 4px; }
+.sign-hint { font-size: 12.5px; color: var(--ink-3); }
+/* pause / resume */
+.resume { border: 1.5px solid var(--marking); background: var(--marking-soft); border-radius: var(--r); padding: 14px 16px; display: flex; gap: 14px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.resume-text { display: grid; gap: 3px; min-width: 0; }
+.resume-text b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.resume-sub { font-size: 13px; color: var(--ink-2); }
+.resume .mode-kicker { color: var(--ink-2); }
+.verdict.paused .big { color: var(--ink); }
+.verdict.paused { border-color: var(--marking); }
+.mode-go.warn { color: var(--bad); }
+.btn.danger, .btn.soft.danger { border-color: var(--bad); color: var(--bad); }
+.qbar { flex-wrap: wrap; }
+.qbar-left { display: flex; gap: 8px; }
+@media (max-width: 540px) { .qbar-mid { order: 3; flex-basis: 100%; text-align: left; } }
+
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-sign" aria-hidden="true">ПДР</div>
+      <div>
+        <h1>ПДР-тренажёр</h1>
+        <p>Разделы 1–39 и дополнительные для категорий B1, B · 1762 вопроса</p>
+      </div>
+    </div>
+    <div class="save-state" id="save-state"><i></i><span>Подключаю статистику…</span></div>
+  </header>
+  <section class="progress" id="progress" aria-label="Прогресс подготовки"></section>
+  <div class="lane" aria-hidden="true"></div>
+  <main id="view" aria-live="polite"></main>
+  <p class="foot">Ответы — по таблице правильных ответов, утверждённой приказом ГСЦ МВС от 29.10.2025 № 225.</p>
+</div>
+
+<script type="application/json" id="qdata">__DATA__</script>
+<script>
+(() => {
+  "use strict";
+  // ---------- data ----------
+  const RAW = JSON.parse(document.getElementById("qdata").textContent);
+  const SECT = new Map(RAW.sections.map(s => [s.id, s]));
+  const Q = RAW.q.map(a => ({ id: a[0], s: a[1], n: a[2], t: a[3], o: a[4], c: a[5], p: a[6], r: a[7], w: a[8] }));
+  const BY = new Map(Q.map(q => [q.id, q]));
+  const EXAM_N = 20, EXAM_SEC = 20 * 60, EXAM_MAX_ERR = 2, FIX_NEED = 2;
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const pad = (n, l = 2) => String(n).padStart(l, "0");
+  const today = () => { const d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+  const fmtTime = s => { s = Math.max(0, Math.round(s)); return pad(Math.floor(s / 60)) + ":" + pad(s % 60); };
+  const fmtDate = ts => { const d = new Date(ts); return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear() + ", " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+  function plural(n, one, few, many) { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return one; if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few; return many; }
+
+  // ---------- images (packed JSON files, loaded on demand) ----------
+  const packCache = new Map();
+  function loadPack(p) {
+    if (p < 0) return Promise.resolve(null);
+    if (!packCache.has(p)) {
+      const pr = fetch("packs/p" + pad(p, 3) + ".json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      pr.catch(() => packCache.delete(p));
+      packCache.set(p, pr);
+    }
+    return packCache.get(p);
+  }
+  async function imgSrc(q) { if (q.p < 0) return null; const pack = await loadPack(q.p); return pack ? pack[q.id] : null; }
+  function prefetch(ids) { const ps = [...new Set(ids.map(id => BY.get(id).p).filter(p => p >= 0))]; (async () => { for (const p of ps) { try { await loadPack(p); } catch (e) {} } })(); }
+  function dataUrlToBlob(u) { const [h, b] = u.split(","); const bin = atob(b); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); return new Blob([arr], { type: h.slice(5).split(";")[0] }); }
+
+  // ---------- stats store ----------
+  // stats.q[id] = { n: attempts, w: wrong total, f: correct-in-a-row since last wrong, lo: last ok (1/0), t: last ts }
+  const stats = { q: {}, d: {}, exams: [] };
+  const store = { mode: "loading", db: null, qExists: false, dExists: false, chain: {}, err: null };
+  const LS_KEY = "pdr-trainer-stats-v1", SS_KEY = "pdr-trainer-session-v1";
+  function setSaveState() {
+    const el = $("#save-state"); if (!el) return;
+    el.className = "save-state" + (store.mode === "db" && !store.err ? " on" : store.mode === "local" || store.err ? " warn" : "");
+    el.querySelector("span").textContent = store.err ? "Статистика не сохраняется" :
+      store.mode === "db" ? "Статистика сохраняется" : store.mode === "local" ? "Статистика только в этом браузере" : "Подключаю статистику…";
+  }
+  function queue(key, fn) {
+    const prev = store.chain[key] || Promise.resolve();
+    const next = prev.then(fn).catch(e => { console.warn("save failed", key, e); if (e && (e.code === "invalid_argument" || e.code === "revoked" || e.code === "quota_exceeded")) { store.err = e.code; setSaveState(); } });
+    store.chain[key] = next; return next;
+  }
+  function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(stats)); } catch (e) {} }
+  function persistAnswer(id, day) {
+    if (store.mode === "local") return saveLocal();
+    if (store.mode !== "db" || store.err) return;
+    const e = stats.q[id], dd = stats.d[day];
+    queue("q", async () => {
+      const ref = store.db.doc("progress/questions");
+      if (store.qExists) await ref.update({ q: { [id]: e } }); else { await ref.set({ q: { ...stats.q } }); store.qExists = true; }
+    });
+    queue("d", async () => {
+      const ref = store.db.doc("progress/daily");
+      if (store.dExists) await ref.update({ d: { [day]: dd } }); else { await ref.set({ d: { ...stats.d } }); store.dExists = true; }
+    });
+  }
+  function persistExam(ex) {
+    const i = stats.exams.findIndex(x => x.id === ex.id);
+    if (i >= 0) stats.exams[i] = ex; else stats.exams.unshift(ex);
+    if (store.mode === "local") return saveLocal();
+    if (store.mode !== "db" || store.err) return;
+    const { id, ...body } = ex;
+    queue("exam-" + id, () => store.db.doc("exams/" + id).set(body));
+  }
+
+  // ---------- paused / unfinished session ----------
+  // Persisted copy is always "paused": {active, mode, id, ids, idx, ans, elapsed (s), startedAt, savedAt}
+  let saved = null;
+  const isExam = S => !!S && (S.mode === "exam" || S.mode === "real");
+  const isReal = S => !!S && S.mode === "real";
+  const elapsedSec = S => (S.elapsed || 0) + (S.runStart ? (Date.now() - S.runStart) / 1000 : 0);
+  function validSnap(s) {
+    return !!(s && s.active && (s.mode === "exam" || s.mode === "real" || s.mode === "fix") && Array.isArray(s.ids) && s.ids.length &&
+      s.ids.every(id => BY.has(id)) && Number.isInteger(s.idx) && s.idx >= 0 && s.idx < s.ids.length && s.ans && typeof s.ans === "object");
+  }
+  function readLocalSnap() { try { return JSON.parse(localStorage.getItem(SS_KEY) || "null"); } catch (e) { return null; } }
+  function saveSession(S) {
+    const snap = S && !S.done
+      ? { active: true, mode: S.mode, id: S.id || null, ids: S.ids, rep: S.rep || [], idx: S.idx, ans: { ...S.ans }, elapsed: Math.round(elapsedSec(S)), startedAt: S.startedAt, savedAt: Date.now() }
+      : { active: false, savedAt: Date.now() };
+    saved = snap.active ? snap : null;
+    try { localStorage.setItem(SS_KEY, JSON.stringify(snap)); } catch (e) {}
+    if (store.mode === "db" && !store.err) queue("session", () => store.db.doc("progress/session").set(snap));
+  }
+  function snapErrors(s) { return Object.keys(s.ans).filter(id => BY.has(id) && s.ans[id] !== BY.get(id).c).length; }
+  function discardSaved() {
+    const s = saved; if (!s) return;
+    if ((s.mode === "exam" || s.mode === "real") && s.id) {
+      const answered = Object.keys(s.ans).length;
+      persistExam({ id: s.id, mode: s.mode === "real" ? "real" : "learn", startedAt: s.startedAt, finishedAt: null, status: "abandoned", ids: s.ids, ans: s.ids.map(id => s.ans[id] || 0),
+        errors: snapErrors(s), answered, passed: null, timeUp: false, durationSec: Math.min(EXAM_SEC, s.elapsed || 0) });
+    }
+    saveSession(null);
+  }
+
+  async function initStore() {
+    let db = null;
+    try { db = window.claude && typeof window.claude.use === "function" ? await window.claude.use("db") : null; } catch (e) { db = null; }
+    if (!db) {
+      store.mode = "local";
+      try { const s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (s) { Object.assign(stats.q, s.q || {}); Object.assign(stats.d, s.d || {}); stats.exams = s.exams || []; } } catch (e) {}
+      setSaveState(); rerenderHome(); return;
+    }
+    store.db = db;
+    try {
+      const [qs, ds, ex, ss] = await Promise.all([
+        db.doc("progress/questions").get(), db.doc("progress/daily").get(),
+        db.collection("exams").orderBy("startedAt", "desc").limit(1000).get(),
+        db.doc("progress/session").get()
+      ]);
+      const localNewer = {};
+      if (qs.exists) { store.qExists = true; const srv = qs.data().q || {}; for (const k in srv) if (!stats.q[k] || (srv[k].t || 0) > (stats.q[k].t || 0)) stats.q[k] = { ...srv[k] }; for (const k in stats.q) if (!srv[k] || (stats.q[k].t || 0) > (srv[k].t || 0)) localNewer[k] = stats.q[k]; }
+      if (ds.exists) { store.dExists = true; const srv = ds.data().d || {}; for (const k in srv) if (!stats.d[k]) stats.d[k] = { ...srv[k] }; }
+      const local = stats.exams; stats.exams = ex.docs.map(d => ({ id: d.id, ...d.data() }));
+      for (const l of local) { const i = stats.exams.findIndex(x => x.id === l.id); if (i < 0) stats.exams.unshift(l); else stats.exams[i] = l; }
+      store.mode = "db";
+      if (store.qExists && Object.keys(localNewer).length) queue("q", () => db.doc("progress/questions").update({ q: localNewer }));
+      // unfinished session: newest of this device's copy and the synced copy wins
+      const srvSnap = ss.exists ? ss.data() : null, locSnap = readLocalSnap();
+      if (session) saveSession(session);
+      else {
+        const best = srvSnap && locSnap ? ((locSnap.savedAt || 0) > (srvSnap.savedAt || 0) ? locSnap : srvSnap) : (srvSnap || locSnap);
+        if (best && best === locSnap && (!srvSnap || (locSnap.savedAt || 0) > (srvSnap.savedAt || 0))) queue("session", () => db.doc("progress/session").set(locSnap));
+        if (best !== locSnap) { try { localStorage.setItem(SS_KEY, JSON.stringify(best)); } catch (e) {} }
+        saved = validSnap(best) ? best : null;
+      }
+    } catch (e) {
+      console.warn("db load failed", e); store.mode = "local";
+    }
+    setSaveState(); rerenderHome();
+  }
+
+  // Forecast of remaining exams: Monte Carlo over the real ticket rules (stratified slots, retakes first),
+  // using this learner's accuracy — first-attempt (a) and on retakes (b), with light priors while data is thin.
+  let fcCache = null;
+  function forecast() {
+    let seen = 0, firstOk = 0, R = 0, Rw = 0, answers = 0;
+    for (const q of Q) { const e = stats.q[q.id]; if (!e) continue; seen++; answers += e.n; if (!e.w) firstOk++; else { R += e.n - 1; Rw += e.w - 1; } }
+    if (seen < EXAM_N) return null;
+    if (fcCache && fcCache.answers === answers) return fcCache.res;
+    const a = (firstOk + 3.5) / (seen + 5), b = Math.min(0.99, Math.max(0.3, (R - Rw + 6.4) / (R + 8)));
+    const secIds = RAW.sections.map(s => s.id), secQ = secIds.map(() => []);
+    Q.forEach((q, i) => secQ[secIds.indexOf(q.s)].push(i));
+    const sizes = secQ.map(x => x.length), quota = sizes.map(s => EXAM_N * s / Q.length), T = Q.length;
+    const init = Q.map(q => { const e = stats.q[q.id]; if (!e) return [0, 0, 0]; if (e.w > 0 && e.f < FIX_NEED) return [1, e.f, 1]; return e.lo === 1 ? [2, 0, 1] : [0, 0, 1]; });
+    const all = [], p95 = [];
+    for (let r = 0; r < 9; r++) {
+      const st = init.map(x => x[0]), f = init.map(x => x[1]);
+      let mastered = st.filter(x => x === 2).length, k = 0, k95 = mastered >= 0.95 * T ? 0 : null;
+      const pend = secQ.map(list => list.filter(i => st[i] === 1));
+      const uns = secQ.map(list => list.filter(i => st[i] === 0 && !init[i][2]));
+      const order = secIds.map((_, i) => i);
+      while (mastered < T && k < 5000) {
+        k++; shuffle(order);
+        let cum = 0, nxt = Math.random();
+        for (const s of order) {
+          let take = Math.floor(quota[s] + 1e-9); cum += quota[s] - take;
+          while (cum > nxt + 1e-9) { take++; nxt += 1; }
+          if (!take) continue;
+          const picked = pend[s].slice(0, take), chosen = new Set(picked);
+          while (picked.length < take && uns[s].length) { const j = Math.floor(Math.random() * uns[s].length); const i = uns[s][j]; uns[s][j] = uns[s][uns[s].length - 1]; uns[s].pop(); chosen.add(i); picked.push(i); }
+          while (picked.length < take) { const i = secQ[s][Math.floor(Math.random() * sizes[s])]; if (!chosen.has(i)) { chosen.add(i); picked.push(i); } }
+          for (const i of picked) {
+            if (st[i] === 2) continue;
+            const ok = Math.random() < (st[i] === 0 ? a : b);
+            if (st[i] === 0) { if (ok) { st[i] = 2; mastered++; } else { st[i] = 1; f[i] = 0; pend[s].push(i); } }
+            else if (ok) { if (++f[i] >= FIX_NEED) { st[i] = 2; mastered++; pend[s].splice(pend[s].indexOf(i), 1); } }
+            else f[i] = 0;
+          }
+        }
+        if (k95 === null && mastered >= 0.95 * T) k95 = k;
+      }
+      all.push(k); p95.push(k95 === null ? k : k95);
+    }
+    const med = arr => arr.sort((x, y) => x - y)[arr.length >> 1];
+    const res = { all: med(all), p95: med(p95), a, b };
+    fcCache = { answers, res };
+    return res;
+  }
+  const approx = n => n >= 100 ? Math.round(n / 10) * 10 : n;
+  let fcTimer = null;
+  function scheduleForecast() {
+    if (fcTimer || store.mode === "loading") return;
+    fcTimer = setTimeout(() => { fcTimer = null; const before = fcCache; try { forecast(); } catch (e) { console.warn(e); } if (fcCache !== before) renderProgress(); }, 60);
+  }
+  // mastered = answered correctly and not waiting for a retake; waiting = wrong and not yet 2 correct in a row
+  function renderProgress() {
+    const el = document.getElementById("progress"); if (!el) return;
+    const total = Q.length; let mastered = 0, waiting = 0;
+    if (store.mode !== "loading") for (const q of Q) { const e = stats.q[q.id]; if (!e) continue; if (e.w > 0 && e.f < FIX_NEED) waiting++; else if (e.lo === 1) mastered++; }
+    const load = store.mode === "loading";
+    const p = total ? mastered / total * 100 : 0, pw = total ? waiting / total * 100 : 0;
+    const fmt = n => load ? "—" : n.toLocaleString("ru-RU");
+    el.innerHTML = `
+      <div class="pg-nums">
+        <div class="pg-main"><b>${load ? "—" : p.toFixed(1).replace(".", ",") + "%"}</b><span>пройдено</span></div>
+        <div><b>${fmt(mastered)}</b><span>освоено из ${total.toLocaleString("ru-RU")}</span></div>
+        <div><b>${fmt(total - mastered)}</b><span>осталось</span></div>
+        <div class="pg-wait"><b>${fmt(waiting)}</b><span>ждут пересдачи</span></div>
+        ${fcHtml(load, mastered)}
+      </div>
+      <div class="pg-bar" role="img" aria-label="Освоено ${mastered} из ${total}, ждут пересдачи ${waiting}"><i class="ok" style="width:${p}%"></i><i class="wait" style="width:${pw}%"></i></div>`;
+  }
+  function fcHtml(load, mastered) {
+    if (load) return `<div class="pg-fc"><b>—</b><span>прогноз</span></div>`;
+    if (mastered >= Q.length) return `<div class="pg-fc"><b>✓</b><span>все вопросы освоены</span></div>`;
+    let seen = 0; for (const q of Q) if (stats.q[q.id]) seen++;
+    if (seen < EXAM_N) return `<div class="pg-fc"><b>—</b><span>прогноз экзаменов появится после первого экзамена</span></div>`;
+    scheduleForecast();
+    const r = fcCache && fcCache.res;
+    if (!r) return `<div class="pg-fc"><b>…</b><span>считаю прогноз</span></div>`;
+    const tip = `Оценка по вашей точности: с первого раза ${Math.round(r.a * 100)}%, на пересдаче ${Math.round(r.b * 100)}%. Считается для режима «Обучение»: ошибки и новые вопросы идут в билет первыми.`;
+    return `<div class="pg-fc" title="${esc(tip)}"><b>≈ ${approx(r.all)}</b><span>экзаменов до 100%${r.p95 > 0 ? ` · до 95% — ≈ ${approx(r.p95)}` : ""}</span></div>`;
+  }
+  function record(id, ok) {
+    const e = stats.q[id] ? { ...stats.q[id] } : { n: 0, w: 0, f: 0, lo: 0, t: 0 };
+    e.n++; if (ok) { if (e.w > 0) e.f++; } else { e.w++; e.f = 0; }
+    e.lo = ok ? 1 : 0; e.t = Date.now();
+    stats.q[id] = e;
+    const day = today(); const dd = stats.d[day] ? { ...stats.d[day] } : { n: 0, ok: 0 };
+    dd.n++; if (ok) dd.ok++; stats.d[day] = dd;
+    persistAnswer(id, day); renderProgress();
+  }
+  const fixPool = () => Q.filter(q => { const e = stats.q[q.id]; return e && e.w > 0 && e.f < FIX_NEED; }).map(q => q.id);
+
+  function summary() {
+    let n = 0, w = 0, seen = 0; const bySec = new Map();
+    for (const q of Q) {
+      const e = stats.q[q.id]; if (!e) continue;
+      seen++; n += e.n; w += e.w;
+      const b = bySec.get(q.s) || { n: 0, w: 0 }; b.n += e.n; b.w += e.w; bySec.set(q.s, b);
+    }
+    const fin = stats.exams.filter(x => x.status === "finished").sort((a, b) => b.startedAt - a.startedAt);
+    const real = fin.filter(x => x.mode === "real");
+    return { n, ok: n - w, seen, bySec, fin, realN: real.length, realPassed: real.filter(x => x.passed).length };
+  }
+
+  // ---------- views ----------
+  const view = document.getElementById("view");
+  let session = null, timerId = null;
+
+  function rerenderHome() { renderProgress(); if (!session) renderHome(); }
+  function renderHome() {
+    stopTimer(); session = null;
+    const s = summary(); const pool = fixPool();
+    const weak = [...s.bySec.entries()].filter(([, b]) => b.n >= 5).map(([id, b]) => ({ id, acc: pct(b.n - b.w, b.n), n: b.n }))
+      .sort((a, b) => a.acc - b.acc || b.n - a.n).slice(0, 6);
+    const loading = store.mode === "loading";
+    const sv = saved;
+    let resume = "";
+    if (sv) {
+      const answered = Object.keys(sv.ans).length, errs = snapErrors(sv);
+      const info = sv.mode !== "fix"
+        ? `Вопрос ${sv.idx + 1} из ${sv.ids.length} · ${errs} ${plural(errs, "ошибка", "ошибки", "ошибок")} · осталось ${fmtTime(EXAM_SEC - (sv.elapsed || 0))}`
+        : `Вопрос ${sv.idx + 1} из ${sv.ids.length} · верно ${answered - errs} из ${answered}`;
+      resume = `
+      <section class="resume" aria-label="Незаконченный подход">
+        <div class="resume-text">
+          <span class="mode-kicker">${sv.mode === "exam" ? "Обучение на паузе" : sv.mode === "real" ? "Реальный экзамен на паузе" : "Работа над ошибками на паузе"}</span>
+          <b>${info}</b>
+          <span class="resume-sub">Сохранено ${fmtDate(sv.savedAt)}. Таймер стоит, пока экзамен на паузе.</span>
+        </div>
+        <div class="row-actions">
+          <button class="btn primary" id="resume">Продолжить</button>
+          <button class="btn soft" id="discard">Сбросить</button>
+        </div>
+      </section>`;
+    }
+    view.innerHTML = `${resume}
+      <section class="modes">
+        <button class="mode mode-exam" id="go-exam">
+          <span class="mode-kicker">Обучение</span>
+          <span class="mode-title">Билет на 20 вопросов</span>
+          <span class="mode-sub">Сначала ваши ошибки, потом новые вопросы, освоенные — только когда раздел пройден. Идёт в статистику и прогресс.</span>
+          <span class="mode-go">${sv ? "Начать новый →" : "Учиться →"}</span>
+        </button>
+        <button class="mode mode-real" id="go-real">
+          <span class="mode-kicker">Реальный экзамен</span>
+          <span class="mode-title">Как в сервисном центре</span>
+          <span class="mode-sub">20 случайных вопросов, 20 минут, можно пропускать. Третья ошибка — экзамен прекращается. На статистику не влияет.</span>
+          <span class="mode-go">${sv ? "Начать новый →" : "Проверить себя →"}</span>
+        </button>
+        <button class="mode mode-fix" id="go-fix" ${pool.length ? "" : "disabled"}>
+          <span class="mode-kicker">Работа над ошибками</span>
+          <span class="mode-title">${loading ? "…" : pool.length ? pool.length + " " + plural(pool.length, "вопрос", "вопроса", "вопросов") + " в очереди" : "Ошибок пока нет"}</span>
+          <span class="mode-sub">${pool.length ? "Вопрос уходит из очереди после двух верных ответов подряд (по одному за подход)." : "Сюда попадут вопросы, на которые вы ответите неправильно в режиме «Обучение»."}</span>
+          ${pool.length ? `<span class="mode-go">${sv ? "Начать новый подход →" : "Повторить ошибки →"}</span>` : ""}
+        </button>
+      </section>
+      <section>
+        <h2 class="sec">Статистика</h2>
+        <div class="tiles">
+          <div class="tile"><b>${loading ? "—" : s.n}</b><span>ответов всего</span></div>
+          <div class="tile"><b>${loading || !s.n ? "—" : pct(s.ok, s.n) + "%"}</b><span>верных ответов</span></div>
+          <div class="tile"><b>${loading ? "—" : s.seen}<small style="font-size:13px;color:var(--ink-3)"> / ${Q.length}</small></b><span>вопросов встречалось</span></div>
+          <div class="tile"><b>${loading ? "—" : s.realPassed + " / " + s.realN}</b><span>реальных экзаменов сдано</span></div>
+        </div>
+      </section>
+      <section class="two">
+        <div>
+          <h2 class="sec">Слабые разделы</h2>
+          <div class="panel">${weak.length ? weak.map(x => `
+            <div class="weak-row"><div class="nm" title="${esc(SECT.get(x.id).title)}"><small>${esc(x.id)}</small>${esc(SECT.get(x.id).title)}</div>
+            <div class="bar"><i class="${x.acc >= 90 ? "good" : x.acc >= 75 ? "mid" : ""}" style="width:${x.acc}%"></i></div><div class="pct">${x.acc}%</div></div>`).join("")
+            : `<p class="empty">Появятся, когда в разделе наберётся хотя бы 5 ответов.</p>`}</div>
+        </div>
+        <div>
+          <h2 class="sec">Последние экзамены</h2>
+          <div class="panel">${s.fin.length ? s.fin.slice(0, 6).map(x => `
+            <div class="hist-row"><div class="when">${fmtDate(x.startedAt)} <span class="badge mute">${x.mode === "real" ? "реальный" : "обучение"}</span></div><div class="err">${x.errors} ${plural(x.errors, "ошибка", "ошибки", "ошибок")}</div>
+            <span class="badge ${x.passed ? "ok" : "bad"}">${x.passed ? "сдан" : x.timeUp ? "время вышло" : x.stopped ? "прекращён" : "не сдан"}</span></div>`).join("")
+            : `<p class="empty">${loading ? "Загружаю…" : "Ещё не было ни одного экзамена."}</p>`}</div>
+        </div>
+      </section>`;
+    armStart($("#go-exam"), startExam);
+    armStart($("#go-real"), startReal);
+    if (pool.length) armStart($("#go-fix"), startFix);
+    if (sv) {
+      $("#resume").onclick = resumeSaved;
+      const d = $("#discard");
+      d.onclick = () => {
+        if (!d.dataset.armed) { d.dataset.armed = "1"; d.textContent = "Точно сбросить?"; d.classList.add("danger"); setTimeout(() => { if (d.isConnected) { delete d.dataset.armed; d.textContent = "Сбросить"; d.classList.remove("danger"); } }, 4000); return; }
+        discardSaved(); renderHome();
+      };
+    }
+  }
+  // Starting something new while a session is paused asks for a second click, then drops the paused one.
+  function armStart(btn, fn) {
+    btn.onclick = () => {
+      if (!saved) return fn();
+      if (btn.dataset.armed) { discardSaved(); return fn(); }
+      btn.dataset.armed = "1";
+      const go = btn.querySelector(".mode-go"); const was = go.textContent;
+      go.textContent = "Незаконченный подход будет сброшен — нажмите ещё раз"; go.classList.add("warn");
+      setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; go.textContent = was; go.classList.remove("warn"); } }, 4000);
+    };
+  }
+
+  // Ticket: 20 slots split across sections in proportion to their size (stratified sampling).
+  // Section s gets floor(20*size/N) questions for sure plus one more with probability equal to the fractional part
+  // (systematic sampling over the fractions keeps the total at exactly 20), so every question has the same 20/N chance.
+  function buildTicket(learn) {
+    const pending = new Set(learn ? fixPool() : []);
+    const bySec = new Map();
+    for (const q of Q) { if (!bySec.has(q.s)) bySec.set(q.s, []); bySec.get(q.s).push(q.id); }
+    const secs = shuffle([...bySec.keys()]);
+    const quota = new Map(secs.map(s => [s, EXAM_N * bySec.get(s).length / Q.length]));
+    const take = new Map(secs.map(s => [s, Math.floor(quota.get(s) + 1e-9)]));
+    let cum = 0, next = Math.random();
+    for (const s of secs) {
+      const fr = quota.get(s) - take.get(s);
+      cum += fr;
+      while (cum > next + 1e-9) { take.set(s, take.get(s) + 1); next += 1; }
+    }
+    let total = [...take.values()].reduce((x, y) => x + y, 0);
+    while (total < EXAM_N) { const s = secs.find(x => take.get(x) < bySec.get(x).length); take.set(s, take.get(s) + 1); total++; } // float safety
+    const order = RAW.sections.map(s => s.id);
+    const ids = [...take.entries()].filter(([, k]) => k > 0).sort((x, y) => order.indexOf(x[0]) - order.indexOf(y[0]))
+      .flatMap(([s, k]) => {
+        const all = bySec.get(s);
+        if (!learn) return shuffle(all.slice()).slice(0, k);
+        // learning: retakes first (longest-waiting first), then never-seen questions, then already mastered ones
+        const mis = all.filter(id => pending.has(id)).sort((a, b) => (stats.q[a].t || 0) - (stats.q[b].t || 0)).slice(0, k);
+        const unseen = shuffle(all.filter(id => !stats.q[id]));
+        const known = shuffle(all.filter(id => stats.q[id] && !mis.includes(id)));
+        return shuffle([...mis, ...unseen, ...known].slice(0, k));
+      }).slice(0, EXAM_N);
+    return learn ? ids : shuffle(ids);
+  }
+
+  function startReal() {
+    const ids = buildTicket(false);
+    session = { mode: "real", id: "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ids, rep: [], idx: 0, view: 0, ans: {}, startedAt: Date.now(), elapsed: 0, runStart: Date.now(), paused: false, done: false, timeUp: false };
+    saveSession(session); prefetch(ids); startTimer(); renderQuestion();
+  }
+  function startExam() {
+    const ids = buildTicket(true);
+    const pend = new Set(fixPool());
+    session = { mode: "exam", id: "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ids, rep: ids.filter(id => pend.has(id)), idx: 0, ans: {}, startedAt: Date.now(), elapsed: 0, runStart: Date.now(), paused: false, done: false, timeUp: false };
+    saveSession(session); prefetch(ids); startTimer(); renderQuestion();
+  }
+  function startFix() {
+    const ids = shuffle(fixPool());
+    session = { mode: "fix", id: null, ids, idx: 0, ans: {}, startedAt: Date.now(), elapsed: 0, runStart: Date.now(), paused: false, done: false };
+    saveSession(session); prefetch(ids.slice(0, 10)); renderQuestion();
+  }
+  function resumeSaved() {
+    const s = saved; if (!validSnap(s)) { saved = null; return renderHome(); }
+    session = { mode: s.mode, id: s.id, ids: s.ids.slice(), rep: Array.isArray(s.rep) ? s.rep.slice() : [], idx: s.idx, ans: { ...s.ans }, startedAt: s.startedAt, elapsed: s.elapsed || 0, runStart: Date.now(), paused: false, done: false, timeUp: false };
+    if (isExam(session) && elapsedSec(session) >= EXAM_SEC) { session.timeUp = true; return finishExam(); }
+    prefetch(isReal(session) ? session.ids : session.ids.slice(session.idx, session.idx + 10));
+    if (isExam(session)) startTimer();
+    renderQuestion();
+  }
+  function pauseSession() {
+    const S = session; if (!S || S.done || S.paused) return;
+    S.elapsed = elapsedSec(S); S.runStart = null; S.paused = true;
+    if (whyCtl) { whyCtl.abort(); whyCtl = null; }
+    saveSession(S); renderPaused();
+  }
+  function continueSession() {
+    const S = session; if (!S || S.done || !S.paused) return;
+    S.paused = false; S.runStart = Date.now();
+    if (isExam(S)) startTimer();
+    renderQuestion();
+  }
+  function errorsOf(sess) { return sess.ids.filter(id => sess.ans[id] && sess.ans[id] !== BY.get(id).c).length; }
+
+  function startTimer() {
+    stopTimer();
+    timerId = setInterval(() => {
+      if (!session || !isExam(session) || session.done) return stopTimer();
+      if (session.paused) return;
+      const left = EXAM_SEC - elapsedSec(session);
+      const t = $("#timer"); if (t) { t.textContent = fmtTime(left); t.classList.toggle("low", left <= 120); }
+      if (left <= 0) { session.timeUp = true; finishExam(); }
+    }, 500);
+  }
+  function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+
+  function renderPaused() {
+    const S = session; stopTimer(); hideTip();
+    const answered = Object.keys(S.ans).length, errs = errorsOf(S);
+    view.innerHTML = `
+      <section class="verdict paused">
+        <span class="mode-kicker">Пауза</span>
+        <div class="big">${S.mode === "exam" ? "Обучение остановлено" : isReal(S) ? "Экзамен остановлен" : "Подход остановлен"}</div>
+        <p>${isExam(S)
+          ? `Вопрос ${S.idx + 1} из ${S.ids.length} · ${errs} ${plural(errs, "ошибка", "ошибки", "ошибок")} · осталось ${fmtTime(EXAM_SEC - elapsedSec(S))}. Таймер стоит.`
+          : `Вопрос ${S.idx + 1} из ${S.ids.length} · верно ${answered - errs} из ${answered}.`}
+        Прогресс сохранён — можно закрыть страницу и продолжить позже, в том числе с другого устройства.</p>
+      </section>
+      <div class="row-actions">
+        <button class="btn primary" id="cont">Продолжить</button>
+        <button class="btn soft" id="home">На главную</button>
+      </div>`;
+    $("#cont").onclick = continueSession;
+    $("#home").onclick = () => { session = null; renderHome(); };
+    $("#cont").focus({ preventScroll: true });
+  }
+
+  let whyCtl = null;
+  function renderQuestion() {
+    if (whyCtl) { whyCtl.abort(); whyCtl = null; }
+    hideTip();
+    const S = session, real = isReal(S);
+    if (real) { if (S.view == null) S.view = S.idx; S.idx = S.view; } // real exam: free navigation, any question can be opened
+    else if (S.view == null || S.view > S.idx || (S.view !== S.idx && !S.ans[S.ids[S.view]])) S.view = S.idx;
+    const vi = S.view, reviewing = vi !== S.idx;
+    const answeredN = Object.keys(S.ans).length, unansweredLeft = S.ids.some((x, i) => i !== vi && !S.ans[x]);
+    const id = S.ids[vi], q = BY.get(id), sec = SECT.get(q.s);
+    const chosen = S.ans[id] || 0, answered = !!chosen;
+    const errs = errorsOf(S);
+    const left = isExam(S) ? EXAM_SEC - elapsedSec(S) : 0;
+    const head = real
+      ? `Реальный экзамен · вопрос ${vi + 1} / ${S.ids.length} · ответов ${answeredN} · <span class="errs">ошибок: ${errs} из ${EXAM_MAX_ERR}</span>`
+      : S.mode === "exam"
+      ? `Обучение · ${vi + 1} / ${S.ids.length}${reviewing ? " · просмотр" : ""} · <span class="errs">ошибок: ${errs}</span>`
+      : `Ошибки · ${S.idx + 1} / ${S.ids.length}`;
+    const strip = isExam(S)
+      ? `<ol class="strip" aria-label="Вопросы экзамена">${S.ids.map((x, i) => {
+          const a = S.ans[x]; const st = a ? (a === BY.get(x).c ? "ok" : "bad") : i === S.idx ? "cur" : real ? "open" : "locked";
+          return `<li><button class="cell ${st}${i === vi ? " viewing" : ""}" data-i="${i}" ${st === "locked" ? 'aria-disabled="true"' : ""} aria-label="Вопрос ${i + 1}${st === "ok" ? ", верно" : st === "bad" ? ", ошибка" : st === "cur" ? ", текущий" : st === "open" ? ", без ответа" : ", ещё впереди"}"></button></li>`;
+        }).join("")}</ol>`
+      : `<div class="progress-line"><i style="width:${pct(S.idx + (answered ? 1 : 0), S.ids.length)}%"></i></div>`;
+    const imgW = q.w ? Math.round(q.w / 1.6) : 0;
+    view.innerHTML = `
+      <div class="qbar">
+        <div class="qbar-left"><button class="ghost" id="pause" title="Пауза (Esc)">Пауза</button><button class="ghost" id="quit">Завершить</button></div>
+        <div class="qbar-mid">${head}</div>
+        ${isExam(S) ? `<div class="timer ${left <= 120 ? "low" : ""}" id="timer">${fmtTime(left)}</div>` : ""}
+      </div>
+      ${strip}
+      <article class="qcard">
+        ${reviewing ? `<div class="review-bar">Просмотр вопроса ${vi + 1}. Ответ уже засчитан, изменить его нельзя.</div>` : ""}
+        <div class="qmeta"><span class="chip">${esc(q.s)}.${q.n}</span><span>${esc(sec.title)}</span></div>
+        ${q.p >= 0 ? `<figure class="qimg skeleton" id="qimg" style="aspect-ratio:1/${q.r};width:min(100%, ${imgW}px)"></figure>` : ""}
+        <h2 class="qtext">${esc(q.t)}</h2>
+        <div class="opts" role="group" aria-label="Варианты ответа">
+          ${q.o.map((t, i) => {
+            const k = i + 1; let cls = "", mark = "";
+            if (answered) { if (k === q.c) { cls = "right"; mark = k === chosen ? "ваш ответ ✓" : "правильный"; } else if (k === chosen) { cls = "wrong"; mark = "ваш ответ"; } else cls = "dim"; }
+            return `<button class="opt ${cls}" data-k="${k}" ${answered ? "disabled" : ""}><span class="num">${k}</span><span>${esc(t)}</span><span class="mark">${mark}</span></button>`;
+          }).join("")}
+        </div>
+        ${answered ? (chosen === q.c
+          ? `<div class="feedback ok">Правильно</div>`
+          : `<div class="feedback bad">Неправильно <span>Правильный ответ — ${q.c}: ${esc(q.o[q.c - 1])}</span></div>`) : ""}
+        <div class="explain" id="explain" hidden></div>
+        <div class="actions">
+          ${real
+            ? (answered ? `<button class="btn primary" id="next">${nextLabel()}</button>` : unansweredLeft ? `<button class="btn soft" id="skip">Пропустить</button>` : "")
+            : reviewing
+            ? `<button class="btn soft" id="why" hidden>Почему?</button><button class="btn soft" id="rv-prev" ${vi === 0 ? "disabled" : ""} aria-label="Предыдущий вопрос">←</button><button class="btn soft" id="rv-next" aria-label="Следующий вопрос">→</button><button class="btn primary" id="back">К вопросу ${S.idx + 1} →</button>`
+            : answered ? `<button class="btn soft" id="why" hidden>Почему?</button><button class="btn primary" id="next">${nextLabel()}</button>` : ""}
+        </div>
+        <div class="kbd">${real ? (answered ? "Enter — дальше · ← → — листать" : "Клавиши 1–" + q.o.length + " — ответ · ← → — листать") + " · Esc — пауза"
+          : reviewing ? "← → — листать · Enter — к текущему вопросу" : answered ? "Enter — дальше · Esc — пауза" : "Клавиши 1–" + q.o.length + " — ответ · Esc — пауза"}${S.mode === "exam" && !reviewing && S.idx > 0 ? " · ← — предыдущий" : ""}</div>
+      </article>`;
+    if (q.p >= 0) imgSrc(q).then(src => { const f = $("#qimg"); if (!f || !src || session !== S || S.ids[S.view] !== id) return; f.classList.remove("skeleton"); f.innerHTML = `<img alt="Иллюстрация к вопросу ${esc(q.s)}.${q.n}" src="${src}">`; }).catch(() => { const f = $("#qimg"); if (f) { f.classList.remove("skeleton"); f.innerHTML = `<p class="empty" style="padding:12px">Картинка не загрузилась — проверьте соединение.</p>`; } });
+    view.querySelectorAll(".opt:not(:disabled)").forEach(b => b.onclick = () => answer(+b.dataset.k));
+    $("#pause").onclick = pauseSession;
+    const quit = $("#quit");
+    quit.onclick = () => {
+      if (!isExam(S)) return finishFix();
+      if (quit.dataset.armed) return finishExam();
+      quit.dataset.armed = "1"; quit.textContent = "Точно завершить?"; quit.classList.add("danger");
+      setTimeout(() => { if (quit.isConnected) { delete quit.dataset.armed; quit.textContent = "Завершить"; quit.classList.remove("danger"); } }, 4000);
+    };
+    view.querySelectorAll(".strip .cell").forEach(b => {
+      b.onclick = () => { if (!b.classList.contains("locked")) goTo(+b.dataset.i); };
+      b.onmouseenter = b.onfocus = () => showTip(b, S, +b.dataset.i);
+      b.onmouseleave = b.onblur = hideTip;
+    });
+    if (real) {
+      const nx = $("#next"); if (nx) { nx.onclick = next; nx.focus({ preventScroll: true }); }
+      const sk = $("#skip"); if (sk) sk.onclick = () => { const j = nextUnanswered(S, vi); if (j >= 0) goTo(j); };
+    } else if (reviewing) {
+      $("#back").onclick = () => goTo(S.idx); $("#rv-next").onclick = () => goTo(vi + 1);
+      const pv = $("#rv-prev"); if (pv) pv.onclick = () => goTo(vi - 1);
+      setupWhy(q, chosen); $("#back").focus({ preventScroll: true });
+    } else if (answered) { $("#next").onclick = next; setupWhy(q, chosen); $("#next").focus({ preventScroll: true }); }
+    if (S.ids[S.idx + 1]) prefetch([S.ids[S.idx + 1]]);
+  }
+  function nextUnanswered(S, from) { for (let d = 1; d <= S.ids.length; d++) { const j = (from + d) % S.ids.length; if (!S.ans[S.ids[j]]) return j; } return -1; }
+  function nextLabel() {
+    const S = session;
+    if (isReal(S)) return nextUnanswered(S, S.view) >= 0 ? "Следующий без ответа →" : "Результат →";
+    if (S.idx + 1 < S.ids.length) return "Далее →";
+    return S.mode === "exam" ? "Результат →" : "Итог →";
+  }
+  function goTo(i) {
+    const S = session; if (!S || S.done || S.paused || !isExam(S)) return;
+    if (isReal(S)) { if (i < 0 || i >= S.ids.length) return; S.view = S.idx = i; saveSession(S); renderQuestion(); window.scrollTo({ top: 0 }); return; }
+    if (i < 0 || i > S.idx) return;
+    if (i !== S.idx && !S.ans[S.ids[i]]) return;
+    S.view = i; renderQuestion(); window.scrollTo({ top: 0 });
+  }
+  const tip = document.createElement("div"); tip.className = "tip"; tip.setAttribute("role", "tooltip"); tip.hidden = true; document.body.appendChild(tip);
+  function showTip(el, S, i) {
+    const x = S.ids[i], q = BY.get(x), a = S.ans[x];
+    const st = a ? (a === q.c ? `<span class="t-ok">верно</span>` : `<span class="t-bad">ошибка</span>`) : i === S.idx ? `<span class="t-cur">текущий</span>` : "";
+    tip.innerHTML = (a || i === S.idx || isReal(S))
+      ? `<b>Вопрос ${i + 1} · ${esc(q.s)}.${q.n} ${st}</b><p>${esc(q.t.length > 200 ? q.t.slice(0, 200) + "…" : q.t)}</p>`
+      : `<b>Вопрос ${i + 1}</b><p>Ещё впереди</p>`;
+    tip.hidden = false;
+    const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    let left = r.left + r.width / 2 - tw / 2; left = Math.max(12, Math.min(left, window.innerWidth - tw - 12));
+    let top = r.bottom + 8; if (top + th > window.innerHeight - 8) top = r.top - th - 8;
+    tip.style.left = left + "px"; tip.style.top = top + "px";
+  }
+  function hideTip() { tip.hidden = true; }
+  function answer(k) {
+    const S = session; if (!S || S.done || S.paused) return;
+    if (S.view != null && S.view !== S.idx) return;
+    const id = S.ids[S.idx], q = BY.get(id); if (S.ans[id]) return;
+    S.ans[id] = k; const ok = k === q.c;
+    if (!isReal(S)) record(id, ok); // the real-exam mode never touches learning stats
+    if (isExam(S)) persistExam(examDoc(S, "in_progress"));
+    if (isReal(S) && errorsOf(S) > EXAM_MAX_ERR) { S.stopped = true; return finishExam(); } // 3rd mistake ends the exam, as in the service centre
+    saveSession(S);
+    renderQuestion();
+  }
+  function next() {
+    const S = session; if (!S || S.paused) return;
+    if (isReal(S)) { const j = nextUnanswered(S, S.view); return j >= 0 ? goTo(j) : finishExam(); }
+    if (S.idx + 1 < S.ids.length) { S.idx++; S.view = S.idx; saveSession(S); renderQuestion(); window.scrollTo({ top: 0 }); }
+    else if (S.mode === "exam") finishExam(); else finishFix();
+  }
+  function examDoc(S, status) {
+    // unanswered questions count as mistakes when an exam ends early; a real exam stopped on the 3rd mistake reports those 3
+    const errors = S.stopped ? errorsOf(S) : S.ids.filter(id => (S.ans[id] || 0) !== BY.get(id).c).length;
+    const answeredErr = errorsOf(S);
+    const finished = status === "finished";
+    return { id: S.id, mode: isReal(S) ? "real" : "learn", stopped: !!S.stopped, startedAt: S.startedAt, finishedAt: finished ? Date.now() : null, status,
+      ids: S.ids, ans: S.ids.map(id => S.ans[id] || 0), errors: finished ? errors : answeredErr,
+      answered: Object.keys(S.ans).length, passed: finished ? (!S.stopped && errors <= EXAM_MAX_ERR) : null, timeUp: !!S.timeUp,
+      durationSec: Math.min(EXAM_SEC, Math.round(elapsedSec(S))) };
+  }
+  function finishExam() {
+    const S = session; if (!S || S.done) return; stopTimer();
+    const ex = examDoc(S, "finished"); S.done = true;
+    persistExam(ex); saveSession(null); renderExamResult(S, ex);
+  }
+  function renderExamResult(S, ex) {
+    const wrong = S.ids.filter(id => isReal(S) ? (S.ans[id] && S.ans[id] !== BY.get(id).c) : (S.ans[id] || 0) !== BY.get(id).c);
+    const unanswered = S.ids.length - ex.answered, real = isReal(S);
+    const madeErr = S.ids.filter(id => S.ans[id] && S.ans[id] !== BY.get(id).c).length;
+    view.innerHTML = `
+      <section class="verdict ${ex.passed ? "pass" : "fail"}">
+        ${real ? `<span class="mode-kicker">Реальный экзамен · на статистику не влияет</span>` : `<span class="mode-kicker">Обучение</span>`}
+        <div class="big">${ex.passed ? "Экзамен сдан" : ex.stopped ? "Экзамен прекращён" : "Экзамен не сдан"}</div>
+        <p>${ex.stopped ? `Третья ошибка после ${ex.answered} ${plural(ex.answered, "ответа", "ответов", "ответов")} из ${S.ids.length} — в сервисном центре на этом тест прекращается.` : `${ex.errors} ${plural(ex.errors, "ошибка", "ошибки", "ошибок")} из ${S.ids.length} (допустимо не больше ${EXAM_MAX_ERR})${unanswered ? `, из них без ответа: ${unanswered}` : ""}.`} Время ${fmtTime(ex.durationSec)}${ex.timeUp ? " · время вышло" : ""}.</p>
+      </section>
+      <div class="row-actions">
+        <button class="btn primary" id="again">${real ? "Ещё реальный экзамен" : "Новый билет"}</button>
+        ${fixPool().length ? `<button class="btn soft" id="fix">Работа над ошибками (${fixPool().length})</button>` : ""}
+        <button class="btn soft" id="home">На главную</button>
+      </div>
+      ${wrong.length ? `<section><h2 class="sec">Разбор ошибок</h2><div class="mist">${wrong.map(id => { const q = BY.get(id), a = S.ans[id] || 0; return `
+        <div class="mist-item" data-id="${esc(id)}"><div class="qmeta"><span class="chip">${esc(q.s)}.${q.n}</span><span>${esc(SECT.get(q.s).title)}</span></div>
+        ${q.p >= 0 ? `<div class="mimg"></div>` : ""}
+        <div class="q">${esc(q.t)}</div>
+        <div class="a-bad">${a ? "Ваш ответ — " + a + ": " + esc(q.o[a - 1]) : "Без ответа"}</div>
+        <div class="a-ok">Правильный — ${q.c}: ${esc(q.o[q.c - 1])}</div></div>`; }).join("")}</div></section>` : ""}`;
+    const wasReal = isReal(S); session = null;
+    $("#again").onclick = wasReal ? startReal : startExam; $("#home").onclick = renderHome; const f = $("#fix"); if (f) f.onclick = startFix;
+    view.querySelectorAll(".mist-item").forEach(el => { const q = BY.get(el.dataset.id); const m = el.querySelector(".mimg"); if (m) imgSrc(q).then(src => { if (src && m.isConnected) m.innerHTML = `<img alt="" src="${src}">`; }).catch(() => {}); });
+    window.scrollTo({ top: 0 });
+  }
+  function finishFix() {
+    const S = session; if (!S || S.done) return; S.done = true; saveSession(null);
+    const done = S.ids.filter(id => S.ans[id]); const right = done.filter(id => S.ans[id] === BY.get(id).c).length;
+    const left = fixPool().length;
+    view.innerHTML = `
+      <section class="verdict ${right === done.length && done.length ? "pass" : "fail"}">
+        <div class="big">${done.length ? right + " из " + done.length + " верно" : "Подход завершён"}</div>
+        <p>В очереди ошибок осталось ${left} ${plural(left, "вопрос", "вопроса", "вопросов")}. Верно отвеченные вернутся ещё раз, чтобы закрепить — после второго верного ответа подряд они уходят из очереди.</p>
+      </section>
+      <div class="row-actions">
+        ${left ? `<button class="btn primary" id="fix">Ещё подход</button>` : ""}
+        <button class="btn ${left ? "soft" : "primary"}" id="exam">Экзамен</button>
+        <button class="btn soft" id="home">На главную</button>
+      </div>`;
+    session = null;
+    const f = $("#fix"); if (f) f.onclick = startFix; $("#exam").onclick = startExam; $("#home").onclick = renderHome;
+  }
+
+  // ---------- ПДР text (loaded on first "Почему?") ----------
+  let pdrPromise = null;
+  const STOP = new Set(["якщо", "який", "яким", "якій", "якого", "якої", "яких", "інших", "іншим", "цьому", "цього", "цієї", "даній", "даному", "даної", "повинен", "повинні", "може", "можуть", "дозволено", "дозволяється", "заборонено", "водій", "водію", "водієві", "водія", "транс", "засоб", "засобу", "засобів", "засобами", "правил", "правилами", "також", "тільки", "лише", "разі", "умови", "наведених", "зазначені", "пунктах", "відповіді", "відповідь", "ситуації", "випадку", "випадках", "після", "перед", "через", "якому", "їхнього", "свого", "своєї", "усіх", "всіх", "будь", "того", "тому", "того", "чином", "метою", "вимоги", "вимог"]);
+  function toks(text) {
+    return (String(text).toLowerCase().replace(/[’'ʼ`]/g, "").match(/[a-zа-яіїєґ]+|\d{1,2}(?:\.\d{1,2})+/g) || [])
+      .filter(w => /^\d/.test(w) || (w.length >= 4 && !STOP.has(w)))
+      .map(w => /^\d/.test(w) ? w : w.slice(0, 6));
+  }
+  function loadPdr() {
+    if (!pdrPromise) {
+      pdrPromise = fetch("pdr.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(P => {
+        const chunks = P.chunks.map(([k, sec, label, text]) => ({ k, sec, label, text }));
+        const df = new Map();
+        for (const c of chunks) {
+          const tf = new Map(); for (const t of toks(c.label + " " + c.text)) tf.set(t, (tf.get(t) || 0) + 1);
+          let len = 0; tf.forEach(v => { len += v; }); c.tf = tf; c.len = len;
+          tf.forEach((_, t) => df.set(t, (df.get(t) || 0) + 1));
+        }
+        const avg = chunks.reduce((a, c) => a + c.len, 0) / chunks.length;
+        return { edition: P.edition, chunks, df, N: chunks.length, avg, byKey: new Map(chunks.map(c => [c.k, c])), alias: P.alias || {}, names: P.names || {}, notes: P.notes || {}, order: P.order || { "33": [], "34": [] } };
+      });
+      pdrPromise.catch(() => { pdrPromise = null; });
+    }
+    return pdrPromise;
+  }
+  const pdrSecs = s => (s === "8.1" || s === "8.2") ? ["8"] : (s === "16.1" || s === "16.2") ? ["16"] : (+s >= 1 && +s <= 34 ? [s] : []);
+  function pdrGet(I, key) { return I.byKey.get(key) || I.byKey.get(I.alias[key]) || null; }
+  function explicitRefs(I, text) {
+    const out = [], re = /(знак\w*|розмітк\w*|табличк\w*|пункт\w*|п\.)\s*((?:\d{1,2}\.\d{1,2}(?:\.\d{1,2})?(?:\s*(?:,|і|та|або|-|–)\s*)?)+)/gi;
+    let m;
+    while ((m = re.exec(text))) {
+      const w = m[1].toLowerCase(); const ns = w.startsWith("знак") || w.startsWith("табличк") ? "33:" : w.startsWith("розмітк") ? "34:" : "";
+      for (const n of m[2].match(/\d{1,2}\.\d{1,2}(?:\.\d{1,2})?/g) || []) { const c = pdrGet(I, ns + n); if (c && !out.includes(c)) out.push(c); }
+    }
+    return out;
+  }
+  function pdrCandidates(I, q) {
+    const w = new Map();
+    const add = (text, k) => { for (const t of toks(text)) w.set(t, Math.max(w.get(t) || 0, k)); };
+    q.o.forEach((t, i) => add(t, i + 1 === q.c ? 1.5 : 0.3)); add(q.t, 1);
+    const secs = pdrSecs(q.s), scored = [];
+    for (const c of I.chunks) {
+      let s = 0;
+      w.forEach((wt, t) => { const f = c.tf.get(t); if (!f) return; const df = I.df.get(t); const idf = Math.log(1 + (I.N - df + 0.5) / (df + 0.5)); s += wt * idf * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * c.len / I.avg)); });
+      if (s > 0) scored.push([secs.includes(c.sec) ? s * 1.4 : s, c]);
+    }
+    scored.sort((a, b) => b[0] - a[0]);
+    const top = explicitRefs(I, q.t + " " + q.o.join(" "));
+    for (const [, c] of scored) { if (top.length >= 12) break; if (!top.includes(c)) top.push(c); }
+    const toc = I.chunks.filter(c => secs.includes(c.sec) && !top.includes(c));
+    return { top, toc };
+  }
+  const clip = (s, n) => s.length > n ? s.slice(0, n) + "…" : s;
+
+  // ---------- "Почему?" via Claude ----------
+  let samplePromise = null;
+  function getSample() { if (!samplePromise) samplePromise = (window.claude && typeof window.claude.use === "function") ? window.claude.use("sample").catch(() => null) : Promise.resolve(null); return samplePromise; }
+  const whyCache = new Map();
+  let whyOff = false;
+  const HIDE_CODES = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
+  // one card per sign / marking seen in the picture: number, name, meaning from ПДР and the general provisions that name it
+  function objCards(I, objs) {
+    if (!objs.length) return "";
+    const signs = objs.filter(o => o.ns === "33"), marks = objs.filter(o => o.ns === "34");
+    const card = (o, i) => {
+      const long = o.def.length > 600;
+      const notes = o.notes.slice(0, 3), more = o.notes.length - notes.length;
+      return `<figure class="sign-item"><figcaption><span class="sign-num">${o.ns === "33" ? "знак" : "розмітка"} ${esc(o.num)}</span>${o.name ? ` <span class="sign-name">«${esc(o.name)}»</span>` : ""}</figcaption>
+        <blockquote lang="uk" class="${long ? "clamp" : ""}" id="obj-${i}">${esc(o.def)}</blockquote>${long ? `<button class="law-more" data-t="obj-${i}">Показать полностью</button>` : ""}
+        ${notes.length ? `<ul class="sign-notes" lang="uk">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>${more > 0 ? `<button class="law-more sign-more" data-more="${i}">Ещё ${more} ${plural(more, "положение", "положения", "положений")}</button>` : ""}` : ""}
+      </figure>`;
+    };
+    let i = 0;
+    return (signs.length ? `<div class="law-src">Знаки на картинке</div>${signs.map(o => card(o, i++)).join("")}` : "")
+      + (marks.length ? `<div class="law-src">Разметка на картинке</div>${marks.map(o => card(o, i++)).join("")}` : "")
+      + `<p class="law-none sign-hint">Знаки и разметка распознаны по картинке автоматически, описания — дословно из ПДР.</p>`;
+  }
+  function objInfo(I, ns, num) {
+    const key = ns + ":" + num, c = pdrGet(I, key); if (!c) return null;
+    return { ns, num, key, chunkKey: c.k, name: I.names[key] || "", def: c.text, notes: I.notes[key] || [] };
+  }
+  function lawHtml(I, cs) {
+    if (!cs.length) return `<p class="law-none">Отдельного пункта ПДР для этого вопроса нет — пояснение ниже по сути.</p>`;
+    return `<div class="law-src">Правила дорожнього руху України · ${esc(I.edition.split(" (")[0].toLowerCase())}</div>` + cs.map((c, i) => {
+      const long = c.text.length > 700;
+      return `<figure class="law-item"><figcaption>${esc(c.label)}</figcaption><blockquote lang="uk" class="${long ? "clamp" : ""}" id="law-${i}">${esc(c.text)}</blockquote>${long ? `<button class="law-more" data-i="${i}">Показать полностью</button>` : ""}</figure>`;
+    }).join("");
+  }
+  function renderWhy(box, I, cs, text, done, objs) {
+    objs = objs || [];
+    const shown = new Set(objs.map(o => o.chunkKey));
+    const law = cs.filter(c => !shown.has(c.k));
+    box.innerHTML = `${I && objs.length ? `<div class="law">${objCards(I, objs)}</div>` : ""}<div class="law">${I ? (law.length || !objs.length ? lawHtml(I, law) : "") : ""}</div><div class="why-text">${esc(text)}</div>${done ? note() : ""}`;
+    box.querySelectorAll(".law-more").forEach(b => b.onclick = () => {
+      if (b.dataset.more != null) { const o = objs[+b.dataset.more]; const ul = b.previousElementSibling; ul.innerHTML = o.notes.map(n => `<li>${esc(n)}</li>`).join(""); b.remove(); return; }
+      const bq = box.querySelector("#" + (b.dataset.t || "law-" + b.dataset.i)); if (bq) bq.classList.remove("clamp"); b.remove();
+    });
+  }
+  async function setupWhy(q, chosen) {
+    const btn = $("#why"); if (!btn) return;
+    const sample = await getSample();
+    if (!sample || whyOff || !btn.isConnected) return;
+    btn.hidden = false;
+    btn.onclick = async () => {
+      const box = $("#explain"); box.hidden = false;
+      const key = q.id + ":" + chosen;
+      if (whyCache.has(key)) { const c = whyCache.get(key); renderWhy(box, c.I, c.cs, c.text, true, c.objs); btn.hidden = true; return; }
+      btn.disabled = true;
+      const ctl = new AbortController(); whyCtl = ctl;
+      const optsTxt = q.o.map((t, i) => (i + 1) + ") " + t).join("\n");
+      let I = null, cs = [], img = null, objs = [];
+      try {
+        box.innerHTML = `<div class="law"><p class="law-none">${q.p >= 0 ? "Распознаю знаки на картинке и ищу пункты ПДР…" : "Ищу пункт ПДР…"}</p></div>`;
+        if (q.p >= 0) { const lim = await sample.limits().catch(() => null); const src = lim && lim.images ? await imgSrc(q).catch(() => null) : null; if (src) img = dataUrlToBlob(src); }
+        try { I = await loadPdr(); } catch (e) { I = null; }
+        // step 1: pick the ПДР fragments (fast model, JSON)
+        if (I) {
+          const { top, toc } = pdrCandidates(I, q);
+          const withObjs = !!img || q.s === "33" || q.s === "34";
+          const catalog = withObjs ? `\nКаталог дорожных знаков ПДР Украины (номер и название):\n${I.order["33"].map(n => n + " " + (I.names["33:" + n] || "")).join("\n")}\n\nКаталог дорожной разметки (номер и начало описания):\n${I.order["34"].map(n => { const c = pdrGet(I, "34:" + n); return n + " " + (c ? clip(c.text.replace(/^[\d., і-]+/, "").trim(), 45) : ""); }).join("\n")}\n` : "";
+          const pick = `Задача: ${withObjs ? "(1) определить, какие дорожные знаки и какая разметка изображены на иллюстрации к вопросу (или прямо названы в вопросе), и (2) " : ""}выбрать из фрагментов Правил дорожного движения Украины (ПДР) от 1 до 3, которые прямо обосновывают правильный ответ на экзаменационный вопрос.
+Верни только JSON вида {${withObjs ? `"signs": ["3.36", "3.37"], "marks": ["1.1"], ` : ""}"keys": ["10.1"]}.${withObjs ? ` В "signs" и "marks" — номера строго из каталогов ниже, только то, что действительно видно на иллюстрации или названо в вопросе (для табличек — номер таблички 7.x); если не уверен в знаке — не включай его; если знаков или разметки нет — пустой список.` : ""} В "keys" — ключи строго из квадратных скобок списка фрагментов${withObjs ? " (описание знака или разметки из каталога можно указать как 33:<номер знака> или 34:<номер разметки>)" : ""}, самый важный первым. Если в ПДР нет прямого обоснования (вопрос про устройство автомобиля, медицину, психологию, юридическую ответственность, европротокол) — "keys": [].
+${img ? "К вопросу приложена иллюстрация.\n" : ""}
+Вопрос ${q.s}.${q.n} (раздел «${SECT.get(q.s).title}»): ${q.t}
+Варианты:
+${optsTxt}
+Правильный ответ: ${q.c}) ${q.o[q.c - 1]}
+
+Наиболее похожие фрагменты (текст):
+${top.map(c => `[${c.k}] ${c.label}: ${clip(c.text, 900)}`).join("\n")}
+${toc.length && !(withObjs && (q.s === "33" || q.s === "34")) ? `\nОстальные фрагменты этого раздела ПДР (начало текста):\n${toc.map(c => `[${c.k}] ${c.label}` + (c.k.startsWith("33:") && !c.k.startsWith("33:п") ? "" : `: ${clip(c.text, 110)}`)).join("\n")}` : ""}${catalog}`;
+          const o1 = { signal: ctl.signal, modelTier: img ? "default" : "quick" }; if (img) o1.images = [img]; // reading signs off a picture needs the stronger model
+          let keys = [], signs = [], marks = [];
+          try {
+            const r = await sample.json(pick, o1);
+            keys = Array.isArray(r && r.keys) ? r.keys : [];
+            signs = withObjs && Array.isArray(r && r.signs) ? r.signs : []; marks = withObjs && Array.isArray(r && r.marks) ? r.marks : [];
+          } catch (e) { if (e && (e.code === "cancelled" || HIDE_CODES.includes(e.code) || e.code === "rate_limited")) throw e; }
+          for (const k of keys.slice(0, 3)) { const c = pdrGet(I, String(k)); if (c && !cs.includes(c)) cs.push(c); }
+          const seenNum = new Set();
+          for (const [ns, list] of [["33", signs], ["34", marks]]) for (const n of list.slice(0, 8)) {
+            const num = String(n).trim().replace(/^(знак|розмітка)\s*/i, ""); if (seenNum.has(ns + num)) continue;
+            const o = objInfo(I, ns, num); if (o) { seenNum.add(ns + num); objs.push(o); }
+          }
+        }
+        if (!box.isConnected) return;
+        renderWhy(box, I, cs, "Думаю…", false, objs);
+        // step 2: explanation grounded in the quoted points (streams)
+        const explainPrompt = `Ты — опытный инструктор автошколы в Украине. Ученик проходит тренажёр теоретического экзамена ПДР Украины (вопросы на украинском).
+Объясни по-русски, коротко (3–6 предложений), почему правильный ответ — вариант ${q.c}.${chosen !== q.c ? ` Ученик выбрал вариант ${chosen} — кратко скажи, в чём ошибка.` : ""}
+${cs.length || objs.length ? "Опирайся на приведённые ниже пункты ПДР и описания знаков и ссылайся на них так, как они подписаны (например, «п. 10.1», «знак 5.34»). Другие номера пунктов не называй." : "Прямого пункта ПДР к вопросу не нашлось — объясни по сути, без номеров пунктов."}
+Правильный ответ задан официальной таблицей ответов, не оспаривай его. Без вступлений и заголовков, простым текстом.
+${img ? "К вопросу приложена иллюстрация (дорожная ситуация, знак или разметка)." : ""}
+
+Раздел: ${SECT.get(q.s).title}
+Вопрос ${q.s}.${q.n}: ${q.t}
+Варианты:
+${optsTxt}
+Правильный ответ: ${q.c}
+${objs.length ? "\nЗнаки и разметка на иллюстрации (описания из ПДР, укр.):\n" + objs.map(o => `${o.ns === "33" ? "знак" : "розмітка"} ${o.num}${o.name ? " «" + o.name + "»" : ""}: ${o.def}${o.notes.length ? "\nЗагальні положення: " + o.notes.slice(0, 4).join(" | ") : ""}`).join("\n\n") : ""}
+${cs.length ? "\nПункты ПДР (укр.):\n" + cs.map(c => `${c.label}: ${c.text}`).join("\n\n") : ""}`;
+        const o2 = { signal: ctl.signal, onText: ({ text }) => { const t = box.querySelector(".why-text"); if (t) t.textContent = text; } };
+        if (img) o2.images = [img];
+        const { text } = await sample(explainPrompt, o2);
+        whyCache.set(key, { I, cs, text, objs });
+        if (box.isConnected) { renderWhy(box, I, cs, text, true, objs); btn.hidden = true; }
+      } catch (e) {
+        if (!box.isConnected) return;
+        if (e && e.code === "cancelled") return;
+        if (e && HIDE_CODES.includes(e.code)) { whyOff = true; btn.hidden = true; box.hidden = true; return; }
+        const msg = (e && e.code === "rate_limited") ? "Слишком много запросов подряд — попробуйте чуть позже." : "Не удалось получить пояснение. Попробуйте ещё раз.";
+        const t = box.querySelector(".why-text");
+        if (t) t.textContent = (e && e.text ? e.text + "\n\n" : "") + msg; else box.innerHTML = `<div class="why-text">${esc(msg)}</div>`;
+      } finally { if (btn.isConnected) btn.disabled = false; if (whyCtl === ctl) whyCtl = null; }
+    };
+  }
+  const note = () => `<span class="note">Цитаты — дословно из официального текста ПДР. Пояснение сгенерировано Claude и может быть неточным.</span>`;
+
+  // ---------- keyboard ----------
+  document.addEventListener("keydown", e => {
+    if (!session || session.done || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (session.paused) { if (e.key === "Enter" && !(e.target && e.target.id === "home")) { e.preventDefault(); continueSession(); } return; }
+    if (e.key === "Escape") { e.preventDefault(); return pauseSession(); }
+    const S = session, vi = S.view == null ? S.idx : S.view;
+    if (isReal(S)) {
+      if (e.key === "ArrowLeft" && vi > 0) { e.preventDefault(); return goTo(vi - 1); }
+      if (e.key === "ArrowRight" && vi < S.ids.length - 1) { e.preventDefault(); return goTo(vi + 1); }
+    }
+    if (S.mode === "exam" && e.key === "ArrowLeft" && vi > 0) { e.preventDefault(); return goTo(vi - 1); }
+    if (S.mode === "exam" && e.key === "ArrowRight" && vi < S.idx) { e.preventDefault(); return goTo(vi + 1); }
+    if (vi !== S.idx) { if (e.key === "Enter" && !(e.target && (e.target.id === "why" || e.target.id === "rv-prev" || e.target.id === "rv-next"))) { e.preventDefault(); goTo(S.idx); } return; }
+    const id = session.ids[session.idx], q = BY.get(id);
+    if (!session.ans[id] && /^[1-5]$/.test(e.key) && +e.key <= q.o.length) { e.preventDefault(); answer(+e.key); }
+    else if (session.ans[id] && e.key === "Enter" && !(e.target && (e.target.id === "why" || e.target.id === "pause" || e.target.id === "quit"))) { e.preventDefault(); next(); }
+  });
+
+  // ---------- auto-pause when the page is left (tab switch, app switch, close) ----------
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") pauseSession(); });
+  window.addEventListener("pagehide", () => pauseSession());
+
+  // ---------- boot ----------
+  function start(data) {
+    const hs = data && data.session;
+    if (hs && !hs.done && Array.isArray(hs.ids) && hs.ids.every(id => BY.has(id))) {
+      session = hs;
+      if (session.paused) renderPaused();
+      else { if (isExam(session)) startTimer(); renderQuestion(); }
+    } else {
+      const loc = readLocalSnap(); saved = validSnap(loc) ? loc : null;
+      renderHome();
+    }
+    setSaveState(); renderProgress();
+    initStore();
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && typeof hot.snapshot === "function") { try { hot.snapshot(() => ({ session })); } catch (e) {} }
+  if (hot && typeof hot.ready === "function") { try { hot.ready(start); } catch (e) { start({}); } }
+  else start((hot && hot.data) || {});
+})();
+</script>

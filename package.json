@@ -1,0 +1,27 @@
+{
+  "name": "teoriya-pdr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Теорія ПДР: тести — офлайн-тренажер теоретичного іспиту (категорія B) для Android",
+  "author": "Alexey Slavin",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build:www": "python3 scripts/build_www.py",
+    "sync": "python3 scripts/build_www.py && npx cap sync android",
+    "icons": "python3 resources/make_icons.py"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/onest": "^5.3.1",
+    "@fontsource/unbounded": "^5.3.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}

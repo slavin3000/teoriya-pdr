@@ -1,0 +1,85 @@
+name: Android build
+
+# Runs on every push to main and by hand (Actions → Android build → Run workflow).
+# Always produces a debug APK for testing on a phone; when the upload-key secrets are set,
+# also produces the signed release AAB (for Google Play) and a signed release APK.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install npm packages
+        run: npm ci
+
+      - name: Build the offline web bundle (www/)
+        run: python3 scripts/build_www.py
+
+      - name: Copy web bundle and plugins into the Android project
+        run: npx cap sync android
+
+      - name: Restore the upload key
+        if: env.HAS_KEY == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Build signed release (AAB + APK)
+        if: env.HAS_KEY == 'true'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/upload.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon bundleRelease assembleRelease
+
+      - name: Collect outputs
+        run: |
+          mkdir -p dist
+          V=$(node -p "require('./package.json').version")
+          cp android/app/build/outputs/apk/debug/app-debug.apk "dist/teoriya-pdr-$V-debug.apk"
+          if [ "$HAS_KEY" = "true" ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab "dist/teoriya-pdr-$V.aab"
+            cp android/app/build/outputs/apk/release/app-release.apk "dist/teoriya-pdr-$V.apk"
+          fi
+          ls -la dist
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: teoriya-pdr-android
+          path: dist/
+          retention-days: 30
+
+      - name: Clean up the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"

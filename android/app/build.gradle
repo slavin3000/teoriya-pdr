@@ -1,0 +1,79 @@
+apply plugin: 'com.android.application'
+
+// Version comes from package.json in the repo root ("version": "1.2.3"): versionName 1.2.3, versionCode 10203.
+// Bump it there before every upload to Google Play — the code must grow with each release.
+def pkg = new groovy.json.JsonSlurper().parse(rootProject.file('../package.json'))
+def (vMaj, vMin, vPat) = pkg.version.tokenize('.').collect { it.replaceAll(/\D.*/, '') as int }
+def appVersionCode = vMaj * 10000 + vMin * 100 + vPat
+
+// Upload key: environment variables (GitHub Actions) or android/keystore.properties (local build).
+// Without them the release build is produced unsigned and Google Play will refuse it.
+def keyProps = new Properties()
+def keyPropsFile = rootProject.file('keystore.properties')
+if (keyPropsFile.exists()) keyPropsFile.withInputStream { keyProps.load(it) }
+def keyOpt = { String env, String prop -> System.getenv(env) ?: keyProps.getProperty(prop) }
+def ksPath = keyOpt('ANDROID_KEYSTORE_PATH', 'storeFile')
+
+android {
+    namespace = "com.slavin.teoriyapdr"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.slavin.teoriyapdr"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode appVersionCode
+        versionName pkg.version
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (ksPath) {
+                storeFile rootProject.file(ksPath)   // absolute, or relative to android/
+                storePassword keyOpt('ANDROID_KEYSTORE_PASSWORD', 'storePassword')
+                keyAlias keyOpt('ANDROID_KEY_ALIAS', 'keyAlias')
+                keyPassword keyOpt('ANDROID_KEY_PASSWORD', 'keyPassword')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (ksPath) signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
